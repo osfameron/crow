@@ -1,11 +1,10 @@
 use strict; use warnings;
-use MooseX::Types;
+package Crow::Types;
 
+use MooseX::Types::Moose qw/Str/;
 use MooseX::Types -declare => [
   qw(Char CellChar),
 ];
-
-use MooseX::Types::Moose qw/Str/;
 
 subtype Char,
   as Str,

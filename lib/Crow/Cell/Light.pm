@@ -3,7 +3,7 @@ use MooseX::Declare;
 class Crow::Cell::Light extends Crow::Cell {
 
     use MooseX::Types::Moose qw( Maybe );
-    use Crow::Types          qw( :all );
+    use Crow::Types          qw( Char CellChar );
     use feature 'switch';
 
     has 'char' => (

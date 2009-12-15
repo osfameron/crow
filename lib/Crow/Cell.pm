@@ -3,23 +3,25 @@ use MooseX::Declare;
 class Crow::Cell {
 
     use MooseX::Types::Common::Numeric qw( PositiveInt );
-    use MooseX::Types::Moose           qw( Str );
+    use MooseX::Types::Moose           qw( Str Int );
     use Crow::Types                    qw( Char );
     use feature 'switch';
 
-    use Crow::Cell::Light;
-    use Crow::Cell::Dark;
-
     has x => (
-        is  => 'ro',
+        is  => 'rw',
         isa => PositiveInt,
+        required => 1,
     );
     has y => (
-        is  => 'ro',
+        is  => 'rw',
         isa => PositiveInt,
+        required => 1,
     );
 
     method parse_cell (ClassName $class: PositiveInt :$x, PositiveInt :$y, Char :$char) {
+
+        require Crow::Cell::Light;
+        require Crow::Cell::Dark;
 
         given ($char) {
             when ('#') {

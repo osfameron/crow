@@ -6,7 +6,7 @@ use Crow::Cell::Light; # causes to die, because can't see CellChar constraint
 my $crossword = <<EOF;
 bar
 a#i
-zoo
+zo 
 EOF
 
 my $grid = do {
@@ -19,7 +19,14 @@ my $grid = do {
             } split //, $line;
         $y++;
         [ @chars ];
-    } split /\n/, $crossword
+    } split /\n/, $crossword;
+    \@lines;
     };
 
-print Dumper($grid);
+print join "\n", (
+    map {
+        join '', map {
+            $_->output;
+            } @$_
+        } @$grid
+    ), '';
