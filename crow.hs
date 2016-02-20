@@ -17,8 +17,6 @@ data GridCell = GridCell
     }
     deriving Show
 
-type Grid = [[GridCell]]
-
 -- a Run of White cells, associated with a direction
 data Run = Run
     { dir :: Dir
@@ -36,8 +34,14 @@ data Light = Light
 -- get list of lights that a given coordinate is in
 type CoordLightMap = M.Map Coord [Light]
 
+data CrowCell = CrowCell
+    { gc :: GridCell
+    , lights :: [Light]
+    }
+    deriving Show
+
 -- the whole grid
-data Crow = Crow Grid CoordLightMap
+data Crow = Crow [[CrowCell]]
     deriving Show
 
 type Enumeration = [Int]
@@ -69,15 +73,16 @@ cw = [
   "# # # # #U# # #",
   "FRAGMENT#L     "]
 
--- call on the sample grid as above
+-- e.g. parseGrid2Crow cw  (to work on sample grid above)
 parseGrid2Crow :: [String] -> Crow
 parseGrid2Crow lines =
     let grid = parseGrid lines
         lights = getLights grid
         lm = getCoordLightMap lights
-    in Crow grid lm
+        makeCC gc = CrowCell gc $ M.findWithDefault [] (coord gc) lm
+    in Crow $ (map.map) makeCC grid
 
-parseGrid :: [String] -> Grid
+parseGrid :: [String] -> [[GridCell]]
 parseGrid lines =
     let rows = zipWith makeRow [0..] $ lines
         makeRow rownum row = 
@@ -90,7 +95,7 @@ parseCell '#' = Black
 parseCell ' ' = White Nothing
 parseCell c = White $ Just c
 
-getLights :: Grid -> [Light]
+getLights :: [[GridCell]] -> [Light]
 getLights grid =
     let acrosses = concatMap (getRuns Across) grid
         downs = concatMap (getRuns Down) $ transpose grid
@@ -104,7 +109,7 @@ getLights grid =
 headPos :: Run -> Coord
 headPos = coord . head . gcs
 
--- parse a row/column of a Grid into Runs
+-- parse a row/column of a [[GridCell]] into Runs
 getRuns :: Dir -> [GridCell] -> [Run]
 getRuns dir line =
     let groups = groupBy ((==) `on` isWhite ) line
@@ -126,7 +131,7 @@ getCoordLightMap ls =
 
 -- stringifications, for human-readable debugging
 instance Stringify Crow where
-    stringify (Crow grid lm) = "TODO"
+    stringify _ = "TODO"
 
 instance Stringify Light where
     stringify l =
