@@ -11,17 +11,26 @@ data Cell = Black | White (Maybe Char)
 
 type Coord = (Int,Int)
 
-data GridCell = GridCell Coord Cell
+data GridCell = GridCell
+    { coord :: Coord
+    , cell  :: Cell
+    }
     deriving Show
 
 type Grid = [[GridCell]]
 
 -- a Run of White cells, associated with a direction
-data Run = Run Dir [GridCell]
+data Run = Run
+    { dir :: Dir
+    , gcs :: [GridCell]
+    }
     deriving Show
 
 -- a numbered run (1-based), e.g. "5 Across" or "2 Down"
-data Light = Light Int Run
+data Light = Light
+    { lnum :: Int
+    , run :: Run
+    }
     deriving Show
 
 -- get list of lights that a given coordinate is in
@@ -93,24 +102,24 @@ getLights grid =
 
 -- get coordinates of first cell in a run (e.g. the start of "5 Across")
 headPos :: Run -> Coord
-headPos (Run _ ( (GridCell pos _) : _ )) = pos
+headPos = coord . head . gcs
 
 -- parse a row/column of a Grid into Runs
 getRuns :: Dir -> [GridCell] -> [Run]
 getRuns dir line =
     let groups = groupBy ((==) `on` isWhite ) line
-        isRun ((GridCell _ (White _)) : (GridCell _ (White _)) : _) = True
+        isRun (GridCell {cell=White _} : GridCell {cell=White _} : _) = True
         isRun _ = False
-    in map (Run dir) . (filter isRun) $ groups
+    in map (Run dir) . filter isRun $ groups
 
 isWhite :: GridCell -> Bool
-isWhite (GridCell _ Black) = False
+isWhite GridCell { cell=Black } = False
 isWhite _ = True
 
 getCoordLightMap :: [Light] -> CoordLightMap
 getCoordLightMap ls =
-    let coord2l l@(Light _ (Run _ gcs)) =
-            let coords = map (\(GridCell pos _) -> pos) gcs
+    let coord2l l =
+            let coords = map coord $ gcs . run $ l
             in zip coords $ repeat [l]
         ls' = concatMap coord2l ls
     in M.fromListWith (++) ls'
@@ -120,10 +129,12 @@ instance Stringify Crow where
     stringify (Crow grid lm) = "TODO"
 
 instance Stringify Light where
-    stringify (Light i (Run d cs)) = intercalate " " [(show i), (show d), "(" ++ (show . length $ cs) ++ ")"]
+    stringify l =
+        let r = run l
+        in intercalate " " [(show . lnum $ l), (show . dir $ r), "(" ++ (show . length . gcs $ r) ++ ")"]
 
 instance Stringify Clue where
-    stringify (Clue s l e) = 
-        let l' = intercalate ", " $ map (\(Light i (Run d _)) -> (show i) ++ " " ++ (show d)) l
+    stringify (Clue s ls e) = 
+        let ls' = intercalate ", " $ map (\l -> (show . lnum $ l) ++ " " ++ (show . dir . run $ l)) ls
             e' = "(" ++ (intercalate "," $ map show e) ++ ")"
-        in intercalate " " [l' ++ ".", s, e']
+        in intercalate " " [ls' ++ ".", s, e']
