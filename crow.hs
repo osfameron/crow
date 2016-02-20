@@ -2,6 +2,8 @@ import Data.List
 import Data.Function
 import qualified Data.Map as M
 
+-- Example:  putStrLn . stringify . parseGrid2Crow $ cw  -- (to work on sample grid below)
+
 -- Direction
 data Dir = Across | Down
     deriving Show
@@ -73,14 +75,15 @@ cw = [
   "# # # # #U# # #",
   "FRAGMENT#L     "]
 
--- e.g. parseGrid2Crow cw  (to work on sample grid above)
+mapOverGrid = map.map
+
 parseGrid2Crow :: [String] -> Crow
 parseGrid2Crow lines =
     let grid = parseGrid lines
         lights = getLights grid
         lm = getCoordLightMap lights
         makeCC gc = CrowCell gc $ M.findWithDefault [] (coord gc) lm
-    in Crow $ (map.map) makeCC grid
+    in Crow $ mapOverGrid makeCC grid
 
 parseGrid :: [String] -> [[GridCell]]
 parseGrid lines =
@@ -130,8 +133,21 @@ getCoordLightMap ls =
     in M.fromListWith (++) ls'
 
 -- stringifications, for human-readable debugging
+instance Stringify CrowCell where
+    stringify cc =
+        let ls = lights cc
+            c = cell . gc $ cc
+        in stringify' c ls
+        where
+            stringify' Black _ = "#"
+            stringify' _ [] = " "
+            stringify' _ [_,_] = "+"
+            stringify' _ [Light _ (Run Across _)] = "-"
+            stringify' _ [Light _ (Run Down _)] = "|"
+
 instance Stringify Crow where
-    stringify _ = "TODO"
+    stringify (Crow g) = intercalate "\n" . mapOverGrid cell2char $ g
+        where cell2char = head . stringify
 
 instance Stringify Light where
     stringify l =
