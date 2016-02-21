@@ -1,23 +1,5 @@
 module Crow
-    ( Dir
-    , Cell
-    , GridCell
-    , Run
-    , Light
-    , CrowCell
-    , Crow
-    , Clue
-    , stringify
-    , mapOverGrid
-    , parseGrid2Crow
-    , parseGrid
-    , parseCell
-    , getLights
-    , headPos
-    , getRuns
-    , isWhite
-    , getCoordLightMap
-    ) where
+    where
 
 import Data.List
 import Data.Function
@@ -137,6 +119,14 @@ getCoordLightMap ls =
     in M.fromListWith (++) ls'
 
 -- stringifications, for human-readable debugging
+instance Stringify Cell where
+    stringify Black = "#"
+    stringify (White Nothing) = " "
+    stringify (White (Just c)) = c : []
+
+instance Stringify GridCell where
+    stringify gc = stringify . cell $ gc
+
 instance Stringify CrowCell where
     stringify cc =
         let ls = lights cc
@@ -149,14 +139,21 @@ instance Stringify CrowCell where
             stringify' _ [Light _ (Run Across _)] = "-"
             stringify' _ [Light _ (Run Down _)] = "|"
 
+cell2char :: (Stringify a) => a -> Char
+cell2char = head . stringify
+
 instance Stringify Crow where
     stringify (Crow g) = intercalate "\n" . mapOverGrid cell2char $ g
-        where cell2char = head . stringify
 
 instance Stringify Light where
     stringify l =
         let r = run l
-        in intercalate " " [(show . lnum $ l), (show . dir $ r), "(" ++ (show . length . gcs $ r) ++ ")"]
+        in intercalate " "
+            [ (show . lnum $ l)
+            , (show . dir $ r)
+            , ("'" ++ (map cell2char $ gcs r) ++ "'")
+            , "(" ++ (show . length . gcs $ r) ++ ")"
+            ]
 
 instance Stringify Clue where
     stringify (Clue s ls e) = 
