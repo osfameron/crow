@@ -50,8 +50,6 @@ class (Show a) => Stringify a where
     stringify :: a -> String
     stringify = show
 
-mapOverGrid = map.map
-
 parseGrid2Crow :: [String] -> Crow
 parseGrid2Crow lines =
     let grid = parseGrid lines
@@ -59,11 +57,10 @@ parseGrid2Crow lines =
         lm = getCoordLightMap lights
     in Crow grid lights lm
 
-getLightsForCoord :: Crow -> Coord -> [Light]
-getLightsForCoord c coord = M.findWithDefault [] coord $ coordLightMap c
-
 parseGrid :: [String] -> Grid
 parseGrid lines = mapOverGrid parseCell lines
+
+mapOverGrid = map.map
 
 parseCell :: Char -> Cell
 parseCell '#' = Black
@@ -81,10 +78,6 @@ getLights grid =
         makeLightNs g n = map (Light n) g
         numbered = zipWith makeLightNs grouped [1..]
     in concat numbered
-
--- get coordinates of first cell in a run (e.g. the start of "5 Across")
-headPos :: Run -> Coord
-headPos = head . coords
 
 getGridWithCoords :: Grid -> [[ (Cell, Coord) ]]
 getGridWithCoords grid = zipOverGrid grid coordsGrid
@@ -113,6 +106,9 @@ getRuns dir line =
             in Run dir coords
     in map makeRun $ filter isRun groups
 
+-- get coordinates of first cell in a run (e.g. the start of "5 Across")
+headPos :: Run -> Coord
+headPos = head . coords
 
 getCoordLightMap :: [Light] -> CoordLightMap
 getCoordLightMap ls =
@@ -139,6 +135,9 @@ instance Stringify Crow where
                     charify' [Light _ (Run Across _)] = '-'
                     charify' [Light _ (Run Down _)] = '|'
                 in charify' lights
+
+getLightsForCoord :: Crow -> Coord -> [Light]
+getLightsForCoord c coord = M.findWithDefault [] coord $ coordLightMap c
 
 instance Stringify Light where
     stringify l =
