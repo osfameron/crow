@@ -14,18 +14,14 @@ data Dir = Across | Down
 data Cell = Black | White (Maybe Char)
     deriving (Show, Eq)
 
-type Coord = (Int,Int)
+type Grid = [[Cell]]
 
-data GridCell = GridCell
-    { coord :: Coord
-    , cell  :: Cell
-    }
-    deriving Show
+type Coord = (Int,Int)
 
 -- a Run of White cells, associated with a direction
 data Run = Run
     { dir :: Dir
-    , gcs :: [GridCell]
+    , coords :: [Coord]
     }
     deriving Show
 
@@ -39,21 +35,14 @@ data Light = Light
 -- get list of lights that a given coordinate is in
 type CoordLightMap = M.Map Coord [Light]
 
-data CrowCell = CrowCell
-    { gc :: GridCell
+data Crow = Crow
+    { grid :: Grid
     , lights :: [Light]
+    , coordLightMap :: CoordLightMap
     }
     deriving Show
 
--- the whole grid
-data Crow = Crow [[CrowCell]]
-    deriving Show
-
 type Enumeration = [Int]
-
--- e.g. Clue "So cryptic!" [light_5_across, light_2_down] [5, 10]
-data Clue = Clue String [Light] Enumeration
-    deriving Show
 
 -- Haskell's standard Show is great for machine-readable output, but we also want
 -- human-readable for debugging.  This typeclass lets us define a 'stringify' function
@@ -68,26 +57,25 @@ parseGrid2Crow lines =
     let grid = parseGrid lines
         lights = getLights grid
         lm = getCoordLightMap lights
-        makeCC gc = CrowCell gc $ M.findWithDefault [] (coord gc) lm
-    in Crow $ mapOverGrid makeCC grid
+    in Crow grid lights lm
 
-parseGrid :: [String] -> [[GridCell]]
-parseGrid lines =
-    let rows = zipWith makeRow [0..] $ lines
-        makeRow rownum row = 
-            let makeCell colnum char = GridCell (rownum, colnum) $ parseCell char
-            in zipWith makeCell [0..] row
-    in rows
+getLightsForCoord :: Crow -> Coord -> [Light]
+getLightsForCoord c coord = M.findWithDefault [] coord $ coordLightMap c
+
+parseGrid :: [String] -> Grid
+parseGrid lines = mapOverGrid parseCell lines
 
 parseCell :: Char -> Cell
 parseCell '#' = Black
 parseCell ' ' = White Nothing
 parseCell c = White $ Just c
 
-getLights :: [[GridCell]] -> [Light]
+getLights :: Grid -> [Light]
 getLights grid =
-    let acrosses = concatMap (getRuns Across) grid
-        downs = concatMap (getRuns Down) $ transpose grid
+    let gridWithCoords :: [[ (Cell, Coord) ]]
+        gridWithCoords = getGridWithCoords grid
+        acrosses = concatMap (getRuns Across) gridWithCoords
+        downs = concatMap (getRuns Down) $ transpose gridWithCoords
         all = sortBy (compare `on` headPos) $ acrosses ++ downs
         grouped = groupBy ((==) `on` headPos) all
         makeLightNs g n = map (Light n) g
@@ -96,25 +84,39 @@ getLights grid =
 
 -- get coordinates of first cell in a run (e.g. the start of "5 Across")
 headPos :: Run -> Coord
-headPos = coord . head . gcs
+headPos = head . coords
 
--- parse a row/column of a [[GridCell]] into Runs
-getRuns :: Dir -> [GridCell] -> [Run]
+getGridWithCoords :: Grid -> [[ (Cell, Coord) ]]
+getGridWithCoords grid = zipOverGrid grid coordsGrid
+
+zipOverGrid = zipWith zip
+
+coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
+
+-- parse a row/column of a Grid into Runs
+getRuns :: Dir -> [(Cell, Coord)] -> [Run]
 getRuns dir line =
-    let groups = groupBy ((==) `on` isWhite ) line
-        isRun (GridCell {cell=White _} : GridCell {cell=White _} : _) = True
-        isRun _ = False
-    in map (Run dir) . filter isRun $ groups
+    let groups :: [[(Cell, Coord)]]
+        groups = groupBy ((==) `on` isWhite ) line
 
-isWhite :: GridCell -> Bool
-isWhite GridCell { cell=Black } = False
-isWhite _ = True
+        isWhite :: (Cell, Coord) -> Bool
+        isWhite (Black, _) = False
+        isWhite _ = True
+
+        isRun :: [(Cell, Coord)] -> Bool
+        isRun ( (White _,_) : (White _,_) : _) = True
+        isRun _ = False
+
+        makeRun :: [ (Cell, Coord) ] -> Run
+        makeRun cgs =
+            let coords = map snd cgs
+            in Run dir coords
+    in map makeRun $ filter isRun groups
+
 
 getCoordLightMap :: [Light] -> CoordLightMap
 getCoordLightMap ls =
-    let coord2l l =
-            let coords = map coord $ gcs . run $ l
-            in zip coords $ repeat [l]
+    let coord2l l = zip (coords . run $ l) $ repeat [l]
         ls' = concatMap coord2l ls
     in M.fromListWith (++) ls'
 
@@ -124,26 +126,19 @@ instance Stringify Cell where
     stringify (White Nothing) = " "
     stringify (White (Just c)) = c : []
 
-instance Stringify GridCell where
-    stringify gc = stringify . cell $ gc
-
-instance Stringify CrowCell where
-    stringify cc =
-        let ls = lights cc
-            c = cell . gc $ cc
-        in stringify' c ls
-        where
-            stringify' Black _ = "#"
-            stringify' _ [] = " "
-            stringify' _ [_,_] = "+"
-            stringify' _ [Light _ (Run Across _)] = "-"
-            stringify' _ [Light _ (Run Down _)] = "|"
-
-cell2char :: (Stringify a) => a -> Char
-cell2char = head . stringify
-
 instance Stringify Crow where
-    stringify (Crow g) = intercalate "\n" . mapOverGrid cell2char $ g
+    stringify c = 
+        let gwc :: [[ (Cell, Coord) ]]
+            gwc = getGridWithCoords $ grid c
+        in intercalate "\n" $ mapOverGrid charify gwc
+        where
+            charify (Black, _) = '#'
+            charify (_, coord) = 
+                let lights = getLightsForCoord c coord
+                    charify' [_,_] = '+'
+                    charify' [Light _ (Run Across _)] = '-'
+                    charify' [Light _ (Run Down _)] = '|'
+                in charify' lights
 
 instance Stringify Light where
     stringify l =
@@ -151,12 +146,5 @@ instance Stringify Light where
         in intercalate " "
             [ (show . lnum $ l)
             , (show . dir $ r)
-            , ("'" ++ (map cell2char $ gcs r) ++ "'")
-            , "(" ++ (show . length . gcs $ r) ++ ")"
+            , "(" ++ (show . length . coords $ r) ++ ")"
             ]
-
-instance Stringify Clue where
-    stringify (Clue s ls e) = 
-        let ls' = intercalate ", " $ map (\l -> (show . lnum $ l) ++ " " ++ (show . dir . run $ l)) ls
-            e' = "(" ++ (intercalate "," $ map show e) ++ ")"
-        in intercalate " " [ls' ++ ".", s, e']
