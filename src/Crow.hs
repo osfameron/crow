@@ -1,8 +1,29 @@
+module Crow
+    ( Dir
+    , Cell
+    , GridCell
+    , Run
+    , Light
+    , CrowCell
+    , Crow
+    , Clue
+    , stringify
+    , mapOverGrid
+    , parseGrid2Crow
+    , parseGrid
+    , parseCell
+    , getLights
+    , headPos
+    , getRuns
+    , isWhite
+    , getCoordLightMap
+    ) where
+
 import Data.List
 import Data.Function
 import qualified Data.Map as M
 
--- Example:  putStrLn . stringify . parseGrid2Crow $ cw  -- (to work on sample grid below)
+-- Example:  putStrLn . stringify . parseGrid2Crow $ cw  -- (to work on sample grid in Spec.hs)
 
 -- Direction
 data Dir = Across | Down
@@ -57,23 +78,6 @@ data Clue = Clue String [Light] Enumeration
 class (Show a) => Stringify a where
     stringify :: a -> String
     stringify = show
-
-cw = [
-  "TRIPOD#        ",
-  "# # # # # # # #",
-  "PARSIFAL#RESCUE",
-  "# # # # # # # #",
-  "###            ",
-  "# # # # # ### #",
-  "ANNA###        ",
-  "# # # # # # # #",
-  "        ###PARE",
-  "# ### # #U# # #",
-  "         S  ###",
-  "# # # # #E# # #",
-  "      #INFERNAL",
-  "# # # # #U# # #",
-  "FRAGMENT#L     "]
 
 mapOverGrid = map.map
 
