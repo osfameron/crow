@@ -69,15 +69,18 @@ parseCell c = White $ Just c
 
 getLights :: Grid -> [Light]
 getLights grid =
-    let gridWithCoords :: [[ (Cell, Coord) ]]
-        gridWithCoords = getGridWithCoords grid
-        acrosses = concatMap (getRuns Across) gridWithCoords
-        downs = concatMap (getRuns Down) $ transpose gridWithCoords
+    let gwc = getGridWithCoords grid
+        acrosses = getRuns Across gwc
+        downs = getRuns Down $ transpose gwc
         all = sortBy (compare `on` headPos) $ acrosses ++ downs
         grouped = groupBy ((==) `on` headPos) all
         makeLightNs g n = map (Light n) g
         numbered = zipWith makeLightNs grouped [1..]
     in concat numbered
+
+-- get coordinates of first cell in a run (e.g. the start of "5 Across")
+headPos :: Run -> Coord
+headPos = head . coords
 
 getGridWithCoords :: Grid -> [[ (Cell, Coord) ]]
 getGridWithCoords grid = zipOverGrid grid coordsGrid
@@ -86,9 +89,12 @@ zipOverGrid = zipWith zip
 
 coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
 
+getRuns :: Dir -> [[(Cell, Coord)]] -> [Run]
+getRuns d = concatMap $ getRunsForLine d
+
 -- parse a row/column of a Grid into Runs
-getRuns :: Dir -> [(Cell, Coord)] -> [Run]
-getRuns dir line =
+getRunsForLine :: Dir -> [(Cell, Coord)] -> [Run]
+getRunsForLine dir line =
     let groups :: [[(Cell, Coord)]]
         groups = groupBy ((==) `on` isWhite ) line
 
@@ -105,10 +111,6 @@ getRuns dir line =
             let coords = map snd cgs
             in Run dir coords
     in map makeRun $ filter isRun groups
-
--- get coordinates of first cell in a run (e.g. the start of "5 Across")
-headPos :: Run -> Coord
-headPos = head . coords
 
 getCoordLightMap :: [Light] -> CoordLightMap
 getCoordLightMap ls =
