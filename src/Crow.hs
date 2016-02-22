@@ -72,15 +72,18 @@ getLights grid =
     let gwc = getGridWithCoords grid
         acrosses = getRuns Across gwc
         downs = getRuns Down $ transpose gwc
-        all = sortBy (compare `on` headPos) $ acrosses ++ downs
-        grouped = groupBy ((==) `on` headPos) all
-        makeLightNs g n = map (Light n) g
-        numbered = zipWith makeLightNs grouped [1..]
+        all = acrosses ++ downs
+        sorted = sortBy (compare `on` headPos) all
+        grouped = groupOn headPos sorted
+        makeLightNs n = map (Light n)
+        numbered = zipWith makeLightNs [1..] grouped 
     in concat numbered
 
 -- get coordinates of first cell in a run (e.g. the start of "5 Across")
 headPos :: Run -> Coord
 headPos = head . coords
+
+groupOn f = groupBy ((==) `on` f)
 
 getGridWithCoords :: Grid -> [[ (Cell, Coord) ]]
 getGridWithCoords grid = zipOverGrid grid coordsGrid
@@ -90,44 +93,37 @@ zipOverGrid = zipWith zip
 coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
 
 getRuns :: Dir -> [[(Cell, Coord)]] -> [Run]
-getRuns d = concatMap $ getRunsForLine d
+getRuns = concatMap . getRunsForLine
 
--- parse a row/column of a Grid into Runs
 getRunsForLine :: Dir -> [(Cell, Coord)] -> [Run]
-getRunsForLine dir line =
-    let groups :: [[(Cell, Coord)]]
-        groups = groupBy ((==) `on` isWhite ) line
-
-        isWhite :: (Cell, Coord) -> Bool
+getRunsForLine dir line = map makeRun runs
+    where
+        makeRun = Run dir . map snd
+        runs = filter isRun groups
+        groups = groupOn isWhite line
         isWhite (Black, _) = False
         isWhite _ = True
-
-        isRun :: [(Cell, Coord)] -> Bool
-        isRun ( (White _,_) : (White _,_) : _) = True
+        isRun ((White _,_) : (White _,_) : _) = True
         isRun _ = False
 
-        makeRun :: [ (Cell, Coord) ] -> Run
-        makeRun cgs =
-            let coords = map snd cgs
-            in Run dir coords
-    in map makeRun $ filter isRun groups
-
 getCoordLightMap :: [Light] -> CoordLightMap
-getCoordLightMap ls =
-    let coord2l l = zip (coords . run $ l) $ repeat [l]
-        ls' = concatMap coord2l ls
-    in M.fromListWith (++) ls'
+getCoordLightMap ls = M.fromListWith (++) lightKVs
+    where
+        lightKVs = concatMap makeKV ls
+        makeKV l = 
+            let k = coords . run $ l
+                v = repeat [l]
+            in zip k v
 
 -- stringifications, for human-readable debugging
 instance Stringify Cell where
     stringify Black = "#"
     stringify (White Nothing) = " "
-    stringify (White (Just c)) = c : []
+    stringify (White (Just c)) = c:[]
 
 instance Stringify Crow where
     stringify c = 
-        let gwc :: [[ (Cell, Coord) ]]
-            gwc = getGridWithCoords $ grid c
+        let gwc = getGridWithCoords $ grid c
         in intercalate "\n" $ mapOverGrid charify gwc
         where
             charify (Black, _) = '#'
@@ -139,13 +135,12 @@ instance Stringify Crow where
                 in charify' lights
 
 getLightsForCoord :: Crow -> Coord -> [Light]
-getLightsForCoord c coord = M.findWithDefault [] coord $ coordLightMap c
+getLightsForCoord = flip (M.findWithDefault []) . coordLightMap
 
 instance Stringify Light where
     stringify l =
         let r = run l
-        in intercalate " "
-            [ (show . lnum $ l)
-            , (show . dir $ r)
-            , "(" ++ (show . length . coords $ r) ++ ")"
-            ]
+            lnum' = show . lnum $ l
+            dir' = show . dir $ r
+            length' = show . length . coords $ r
+        in intercalate " " [ lnum', dir', concat ["(", length', ")"] ]
