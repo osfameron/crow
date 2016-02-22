@@ -15,6 +15,8 @@ data Cell = Black | White (Maybe Char)
     deriving (Show, Eq)
 
 type Grid = [[Cell]]
+type LineWithCoords = [ (Cell, Coord) ]
+type GridWithCoords = [[(Cell, Coord)]]
 
 type Coord = (Int,Int)
 
@@ -58,7 +60,7 @@ parseGrid2Crow lines =
     in Crow grid lights lm
 
 parseGrid :: [String] -> Grid
-parseGrid lines = mapOverGrid parseCell lines
+parseGrid = mapOverGrid parseCell
 
 mapOverGrid = map.map
 
@@ -68,16 +70,12 @@ parseCell ' ' = White Nothing
 parseCell c = White $ Just c
 
 getLights :: Grid -> [Light]
-getLights grid =
-    let gwc = getGridWithCoords grid
-        acrosses = getRuns Across gwc
-        downs = getRuns Down $ transpose gwc
-        all = acrosses ++ downs
-        sorted = sortBy (compare `on` headPos) all
-        grouped = groupOn headPos sorted
-        makeLightNs n = map (Light n)
-        numbered = zipWith makeLightNs [1..] grouped 
-    in concat numbered
+getLights = concat
+    . zipWith (map . Light) [1..]
+    . groupOn headPos
+    . sortBy (compare `on` headPos)
+    . getRuns
+    . zipGridWithCoords
 
 -- get coordinates of first cell in a run (e.g. the start of "5 Across")
 headPos :: Run -> Coord
@@ -85,22 +83,24 @@ headPos = head . coords
 
 groupOn f = groupBy ((==) `on` f)
 
-getGridWithCoords :: Grid -> [[ (Cell, Coord) ]]
-getGridWithCoords grid = zipOverGrid grid coordsGrid
+zipGridWithCoords :: Grid -> GridWithCoords
+zipGridWithCoords grid = zipOverGrid grid coordsGrid
 
 zipOverGrid = zipWith zip
 
 coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
 
-getRuns :: Dir -> [[(Cell, Coord)]] -> [Run]
-getRuns = concatMap . getRunsForLine
+getRuns :: GridWithCoords -> [Run]
+getRuns gwc = (getRuns' Across id) ++ (getRuns' Down transpose)
+    where getRuns' dir f = concatMap (getRunsForLine dir) $ f gwc
 
-getRunsForLine :: Dir -> [(Cell, Coord)] -> [Run]
-getRunsForLine dir line = map makeRun runs
+getRunsForLine :: Dir -> LineWithCoords -> [Run]
+getRunsForLine dir =
+    map makeRun
+    . filter isRun
+    . groupOn isWhite
     where
         makeRun = Run dir . map snd
-        runs = filter isRun groups
-        groups = groupOn isWhite line
         isWhite (Black, _) = False
         isWhite _ = True
         isRun ((White _,_) : (White _,_) : _) = True
@@ -123,7 +123,7 @@ instance Stringify Cell where
 
 instance Stringify Crow where
     stringify c = 
-        let gwc = getGridWithCoords $ grid c
+        let gwc = zipGridWithCoords $ grid c
         in intercalate "\n" $ mapOverGrid charify gwc
         where
             charify (Black, _) = '#'
@@ -138,9 +138,9 @@ getLightsForCoord :: Crow -> Coord -> [Light]
 getLightsForCoord = flip (M.findWithDefault []) . coordLightMap
 
 instance Stringify Light where
-    stringify l =
-        let r = run l
+    stringify l = intercalate " " [ lnum', dir', concat ["(", length', ")"] ]
+        where
+            r = run l
             lnum' = show . lnum $ l
             dir' = show . dir $ r
             length' = show . length . coords $ r
-        in intercalate " " [ lnum', dir', concat ["(", length', ")"] ]
