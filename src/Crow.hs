@@ -101,10 +101,10 @@ getRunsForLine dir =
     . groupOn isWhite
     where
         makeRun = Run dir . map snd
-        isWhite (Black, _) = False
-        isWhite _ = True
         isRun ((White _,_) : (White _,_) : _) = True
         isRun _ = False
+        isWhite (Black, _) = False
+        isWhite _ = True
 
 getCoordLightMap :: [Light] -> CoordLightMap
 getCoordLightMap ls = M.fromListWith (++) lightKVs
