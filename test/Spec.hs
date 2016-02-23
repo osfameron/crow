@@ -4,7 +4,7 @@ import Data.List
 
 cw :: [String]
 cw = 
-    [ "      #        "
+    [ "LEMONS#        "
     , "# # # # # # # #"
     , "        #      "
     , "# # # # # # # #"
@@ -52,4 +52,8 @@ main = hspec $ do
         it "can stringify a light" $ do
             let light = (lights crow) !! 0
             (stringify light) `shouldBe` "1 Across (6)"
+
+        it "can stringOnGrid a light" $ do
+            let light = (lights crow) !! 0
+            (stringOnGrid light (grid crow)) `shouldBe` "LEMONS"
 

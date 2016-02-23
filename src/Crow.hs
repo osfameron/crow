@@ -37,14 +37,16 @@ data Light = Light
 -- get list of lights that a given coordinate is in
 type CoordLightMap = M.Map Coord [Light]
 
+type Answer = [String]
+
+data Clue = Clue String Answer [Light]
+
 data Crow = Crow
     { grid :: Grid
     , lights :: [Light]
     , coordLightMap :: CoordLightMap
     }
     deriving Show
-
-type Enumeration = [Int]
 
 -- Haskell's standard Show is great for machine-readable output, but we also want
 -- human-readable for debugging.  This typeclass lets us define a 'stringify' function
@@ -115,11 +117,23 @@ getCoordLightMap ls = M.fromListWith (++) lightKVs
                 v = repeat [l]
             in zip k v
 
+class StringOnGrid a where
+    stringOnGrid :: a -> Grid -> String
+
+instance StringOnGrid Run where
+    stringOnGrid r g =
+        let cs = coords r
+            indexIntoGrid (row,col) = stringify $ g !! row !! col
+        in concatMap indexIntoGrid cs
+
+instance StringOnGrid Light where
+    stringOnGrid l = stringOnGrid (run l)
+
 -- stringifications, for human-readable debugging
 instance Stringify Cell where
     stringify Black = "#"
     stringify (White Nothing) = " "
-    stringify (White (Just c)) = c:[]
+    stringify (White (Just c)) = [c]
 
 instance Stringify Crow where
     stringify c = 
