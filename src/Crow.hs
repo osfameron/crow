@@ -1,8 +1,9 @@
 module Crow
     where
 
-import Data.List
-import Data.Function
+import Data.List (groupBy, sortBy, stripPrefix, transpose, intercalate)
+import Data.Maybe (maybeToList, listToMaybe)
+import Data.Function (on)
 import qualified Data.Map as M
 
 -- Example:  putStrLn . stringify . parseGrid2Crow $ cw  -- (to work on sample grid in Spec.hs)
@@ -116,6 +117,23 @@ getCoordLightMap ls = M.fromListWith (++) lightKVs
             let k = coords . run $ l
                 v = repeat [l]
             in zip k v
+
+getLightsForAnswer :: [Light] -> Answer -> [Light]
+getLightsForAnswer ls a = undefined
+
+matches :: (a -> String) -> [a] -> String -> [[a]]
+matches _ _ [] = return []
+matches f ss target = do
+    s <- ss
+    remainder <- maybeToList $ stripPrefix (f s) target
+    fmap (s:) $ matches f ss remainder
+
+longestMatch = longestMatchBy id
+
+longestMatchBy f ss target =
+    let longestFirst = flip (compare `on` length)
+        sorted = sortBy longestFirst ss
+    in listToMaybe $ matches f sorted target
 
 class StringOnGrid a where
     stringOnGrid :: a -> Grid -> String
