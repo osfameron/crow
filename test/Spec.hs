@@ -43,6 +43,7 @@ expected = intercalate "\n"
 main :: IO ()
 main = hspec $ do
     let crow = parseGrid2Crow cw
+    let light1a = (lights crow) !! 0
 
     describe "Crow" $ do
         it "can parse a grid" $ do
@@ -50,26 +51,31 @@ main = hspec $ do
 
     describe "Light" $ do
         it "can stringify a light" $ do
-            let light = (lights crow) !! 0
-            (stringify light) `shouldBe` "1 Across (6)"
+            (stringify light1a) `shouldBe` "1 Across (6)"
 
         it "can stringOnGrid a light" $ do
-            let light = (lights crow) !! 0
-            (stringOnGrid light (grid crow)) `shouldBe` "LEMONS"
+            (stringOnGrid (grid crow) light1a) `shouldBe` "LEMONS"
 
 
     describe "longestMatch" $ do
-        let m = "watchtower"
         let ss = ["watch", "watchtower", "tower", "lemon"]
+        let lm = longestMatch ss
         it "returns a unique match" $ do
-            longestMatch ss "watch" `shouldBe` (Just ["watch"])
+            lm "watch" `shouldBe` (Just ["watch"])
         it "returns longest match" $ do
-            longestMatch ss "watchtower" `shouldBe` (Just ["watchtower"])
+            lm "watchtower" `shouldBe` (Just ["watchtower"])
         it "matches 2 items" $ do
-            longestMatch ss "towerwatch" `shouldBe` (Just ["tower", "watch"])
+            lm "towerwatch" `shouldBe` (Just ["tower", "watch"])
         it "matches 3 items" $ do
-            longestMatch ss "lemonwatchtowerlemon" `shouldBe` (Just ["lemon", "watchtower", "lemon"])
+            lm "lemonwatchtowerlemon" `shouldBe` (Just ["lemon", "watchtower", "lemon"])
         it "won't match a nonexistent word" $ do
-            longestMatch ss "orange" `shouldBe` Nothing
+            lm "orange" `shouldBe` Nothing
         it "won't partially match" $ do
-            longestMatch ss "watchable" `shouldBe` Nothing
+            lm "watchable" `shouldBe` Nothing
+
+    describe "longestMatchBy against Lights" $ do
+        let lm = longestMatchBy (stringOnGrid $ grid crow) (lights crow)
+        it "returns a unique match" $ do
+            lm "LEMONS" `shouldBe` Just [light1a]
+        it "won't match a nonexistent word" $ do
+            lm "ORANGE" `shouldBe` Nothing

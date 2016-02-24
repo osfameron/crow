@@ -8,7 +8,7 @@ import qualified Data.Map as M
 
 -- Direction
 data Dir = Across | Down
-    deriving Show
+    deriving (Show, Eq)
 
 data Cell = Black | White (Maybe Char)
     deriving (Show, Eq)
@@ -24,14 +24,14 @@ data Run = Run
     { dir :: Dir
     , coords :: [Coord]
     }
-    deriving Show
+    deriving (Show, Eq)
 
 -- a numbered run (1-based), e.g. "5 Across" or "2 Down"
 data Light = Light
     { lnum :: Int
     , run :: Run
     }
-    deriving Show
+    deriving (Show, Eq)
 
 -- get list of lights that a given coordinate is in
 type CoordLightMap = M.Map Coord [Light]
@@ -128,22 +128,23 @@ matches f ss target = do
 
 longestMatch = longestMatchBy id
 
+longestMatchBy :: (a -> String) -> [a] -> String -> Maybe [a]
 longestMatchBy f ss target =
-    let longestFirst = flip (compare `on` length)
+    let longestFirst = flip (compare `on` (length . f))
         sorted = sortBy longestFirst ss
     in listToMaybe $ matches f sorted target
 
 class StringOnGrid a where
-    stringOnGrid :: a -> Grid -> String
+    stringOnGrid :: Grid -> a -> String
 
 instance StringOnGrid Run where
-    stringOnGrid r g =
+    stringOnGrid g r =
         let cs = coords r
             indexIntoGrid (row,col) = stringify $ g !! row !! col
         in concatMap indexIntoGrid cs
 
 instance StringOnGrid Light where
-    stringOnGrid l = stringOnGrid (run l)
+    stringOnGrid g l = stringOnGrid g (run l)
 
 -- stringifications, for human-readable debugging
 instance Stringify Cell where
