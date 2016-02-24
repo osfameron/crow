@@ -14,8 +14,7 @@ data Cell = Black | White (Maybe Char)
     deriving (Show, Eq)
 
 type Grid = [[Cell]]
-type LineWithCoords = [ (Cell, Coord) ]
-type GridWithCoords = [[(Cell, Coord)]]
+type CellCoord = (Cell, Coord)
 
 type Coord = (Int,Int)
 
@@ -37,8 +36,9 @@ data Light = Light
 type CoordLightMap = M.Map Coord [Light]
 
 type Answer = [String]
+type Enumeration = [Int]
 
-data Clue = Clue String Answer [Light]
+data Clue = Clue String Enumeration [Light]
 
 data Crow = Crow
     { grid :: Grid
@@ -84,18 +84,18 @@ headPos = head . coords
 
 groupOn f = groupBy ((==) `on` f)
 
-zipGridWithCoords :: Grid -> GridWithCoords
+zipGridWithCoords :: Grid -> [[CellCoord]]
 zipGridWithCoords grid = zipOverGrid grid coordsGrid
 
 zipOverGrid = zipWith zip
 
 coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
 
-getRuns :: GridWithCoords -> [Run]
+getRuns :: [[CellCoord]] -> [Run]
 getRuns gwc = (getRuns' Across id) ++ (getRuns' Down transpose)
     where getRuns' dir f = concatMap (getRunsForLine dir) $ f gwc
 
-getRunsForLine :: Dir -> LineWithCoords -> [Run]
+getRunsForLine :: Dir -> [CellCoord] -> [Run]
 getRunsForLine dir =
     map makeRun
     . filter isRun
@@ -116,8 +116,8 @@ getCoordLightMap ls = M.fromListWith (++) lightKVs
                 v = repeat [l]
             in zip k v
 
-getLightsForAnswer :: [Light] -> Answer -> [Light]
-getLightsForAnswer ls a = undefined
+getLightsForAnswer :: Grid -> [Light] -> Answer -> [Light]
+getLightsForAnswer g ls a = undefined
 
 matches :: (a -> String) -> [a] -> String -> [[a]]
 matches _ _ [] = return []
