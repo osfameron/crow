@@ -6,8 +6,6 @@ import Data.Maybe (maybeToList, listToMaybe)
 import Data.Function (on)
 import qualified Data.Map as M
 
--- Example:  putStrLn . stringify . parseGrid2Crow $ cw  -- (to work on sample grid in Spec.hs)
-
 -- Direction
 data Dir = Across | Down
     deriving Show
