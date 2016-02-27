@@ -76,7 +76,6 @@ getLights = concat
     . groupOn headPos
     . sortBy (compare `on` headPos)
     . getRuns
-    . zipGridWithCoords
 
 -- get coordinates of first cell in a run (e.g. the start of "5 Across")
 headPos :: Run -> Coord
@@ -84,16 +83,11 @@ headPos = head . coords
 
 groupOn f = groupBy ((==) `on` f)
 
-zipGridWithCoords :: Grid -> [[CellCoord]]
-zipGridWithCoords grid = zipOverGrid grid coordsGrid
-
-zipOverGrid = zipWith zip
-
-coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
-
-getRuns :: [[CellCoord]] -> [Run]
-getRuns gwc = (getRuns' Across id) ++ (getRuns' Down transpose)
-    where getRuns' dir f = concatMap (getRunsForLine dir) $ f gwc
+getRuns :: Grid -> [Run]
+getRuns g = (getRuns' Across id) ++ (getRuns' Down transpose)
+    where
+        gwc = zipGridWithCoords g
+        getRuns' dir f = concatMap (getRunsForLine dir) $ f gwc
 
 getRunsForLine :: Dir -> [CellCoord] -> [Run]
 getRunsForLine dir =
@@ -101,11 +95,19 @@ getRunsForLine dir =
     . filter isRun
     . groupOn isWhite
     where
-        makeRun = Run dir . map snd
+        makeRun = Run dir 
+                . map snd
         isRun ((White _,_) : (White _,_) : _) = True
         isRun _ = False
-        isWhite (Black, _) = False
-        isWhite _ = True
+        isWhite (White _, _) = True
+        isWhite _ = False
+
+zipGridWithCoords :: Grid -> [[CellCoord]]
+zipGridWithCoords grid = zipOverGrid grid coordsGrid
+
+coordsGrid = zipOverGrid (map repeat [0..]) (repeat [0..]) 
+
+zipOverGrid = zipWith zip
 
 getCoordLightMap :: [Light] -> CoordLightMap
 getCoordLightMap ls = M.fromListWith (++) lightKVs
