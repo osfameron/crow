@@ -118,8 +118,10 @@ getCoordLightMap ls = M.fromListWith (++) lightKVs
                 v = repeat [l]
             in zip k v
 
-getLightsForAnswer :: Grid -> [Light] -> Answer -> [Light]
-getLightsForAnswer g ls a = undefined
+getLightsForAnswer :: Grid -> [Light] -> Answer -> Maybe [Light]
+getLightsForAnswer g ls =
+    let lm = longestMatchBy (stringOnGrid g) ls
+    in lm . concat
 
 matches :: (a -> String) -> [a] -> String -> [[a]]
 matches _ _ [] = return []

@@ -73,9 +73,9 @@ main = hspec $ do
         it "won't partially match" $ do
             lm "watchable" `shouldBe` Nothing
 
-    describe "longestMatchBy against Lights" $ do
-        let lm = longestMatchBy (stringOnGrid $ grid crow) (lights crow)
+    describe "getLightsForAnswer (using longestMatch algorithm)" $ do
+        let lm = getLightsForAnswer (grid crow) (lights crow)
         it "returns a unique match" $ do
-            lm "LEMONS" `shouldBe` Just [light1a]
+            lm ["LEMONS"] `shouldBe` Just [light1a]
         it "won't match a nonexistent word" $ do
-            lm "ORANGE" `shouldBe` Nothing
+            lm ["ORANGE"] `shouldBe` Nothing
