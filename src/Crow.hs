@@ -172,6 +172,15 @@ instance Stringify Crow where
 getLightsForCoord :: Crow -> Coord -> [Light]
 getLightsForCoord = flip (M.findWithDefault []) . coordLightMap
 
+headLightNum :: Coord -> [Light] -> Maybe Int
+headLightNum coord ls =
+    let headLights = filter isHeadLight ls
+    in listToMaybe headLights >>= return . lnum
+    where
+        isHeadLight l =
+            let (coord':_) = coords . run $ l
+            in coord == coord'
+
 instance Stringify Light where
     stringify l = intercalate " " [ lnum', dir', concat ["(", length', ")"] ]
         where

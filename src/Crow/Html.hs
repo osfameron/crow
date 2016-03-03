@@ -1,21 +1,35 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE FlexibleContexts #-}
+-- {-# LANGUAGE FlexibleContexts #-}
 
 module Crow.Html
     where
 
 import Crow
 import Lucid
+import Data.Monoid ((<>))
+import Data.Maybe (catMaybes)
 
 renderCrow :: Crow -> Html ()
-renderCrow c = 
-    let rows = zipGridWithCoords $ grid c 
-        renderCell (Black, _) = return td_ [class_ "black"] "#"
-        renderCell (cell, (row', col')) =
-            do
-                let letter = toHtml . stringify $ cell
+renderCrow crow = 
+    let rows = zipGridWithCoords $ grid crow 
+        renderCell :: (Cell, Coord) -> Html ()
+        renderCell (Black, _) = td_ [class_ "black"] "#"
+        renderCell (cell, coord@(row', col')) =
+            let lights = getLightsForCoord crow coord
+                headLight :: Maybe Int
+                headLight = headLightNum coord lights
 
-                return td_ [class_ "white"] letter
+                letter, number :: Maybe (Html ())
+                letter = Just (toHtml . stringify $ cell)
+                number = headLight >>= \i -> return $ (div_ [class_ "head"] (toHtml . show $ i))
+
+                contents_ :: [Html ()]
+                contents_ = catMaybes [number, letter]
+
+                contents :: Html ()
+                contents = sequence $ contents_
+
+            in td_ [class_ "white"] contents
     in table_ $ 
-        mapM_ (\row -> tr_ $ mapM renderCell row) rows
+        mapM_ (\row -> tr_ $ mapM_ renderCell row) rows
