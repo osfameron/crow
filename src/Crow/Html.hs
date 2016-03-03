@@ -24,11 +24,8 @@ renderCrow crow =
                 letter = Just (toHtml . stringify $ cell)
                 number = headLight >>= \i -> return $ (div_ [class_ "head"] (toHtml . show $ i))
 
-                contents_ :: [Html ()]
-                contents_ = catMaybes [number, letter]
-
                 contents :: Html ()
-                contents = sequence $ contents_
+                contents = sequence_ . catMaybes $ [number, letter]
 
             in td_ [class_ "white"] contents
     in table_ $ 
