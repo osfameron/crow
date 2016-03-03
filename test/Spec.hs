@@ -1,4 +1,5 @@
 import Crow
+import Crow.Html
 import Test.Hspec
 import Data.List
 
@@ -79,3 +80,7 @@ main = hspec $ do
             lm ["LEMONS"] `shouldBe` Just [light1a]
         it "won't match a nonexistent word" $ do
             lm ["ORANGE"] `shouldBe` Nothing
+
+    describe "Crow.Html" $ do
+        it "can render a Crow grid" $ do
+            (show . renderCrow $ crow) `shouldBe` "123 &lt; 456"
