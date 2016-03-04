@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
--- {-# LANGUAGE FlexibleContexts #-}
 
 module Crow.Html
     ( renderCrow
@@ -10,7 +9,6 @@ module Crow.Html
 
 import Crow
 import Lucid
-import Data.Monoid ((<>))
 import Data.Maybe (catMaybes)
 import Data.Text
 
