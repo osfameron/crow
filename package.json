@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "devDependencies": {
+    "babel-cli": "^6.6.5",
+    "babel-plugin-transform-react-jsx": "^6.6.5"
+  },
+  "dependencies": {
+    "rx": "^4.0.8",
+    "@cycle/core": "^6.0.3",
+    "@cycle/dom": "^9.1.0"
+  }
+}

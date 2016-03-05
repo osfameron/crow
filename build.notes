@@ -1,0 +1,3 @@
+while watch-file js-src/crow.js; do echo Rebabelifying; browserify js-src/crow.js -t babelify --outfile static/crow-bundle.j s && tput bel; echo Done; done
+
+stack exec crow-exe -- --port 5000
