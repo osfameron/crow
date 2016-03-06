@@ -1,6 +1,12 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _rx = require('rx');
+
+var _rx2 = _interopRequireDefault(_rx);
+
 var _core = require('@cycle/core');
 
 var _core2 = _interopRequireDefault(_core);
@@ -10,33 +16,80 @@ var _dom = require('@cycle/dom');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function main(drivers) {
-  return {
-    DOM: drivers.DOM.select('input').events('click').map(function (ev) {
-      return ev.target.checked;
-    }).startWith(false).map(function (toggled) {
-      return (0, _dom.hJSX)(
-        'div',
-        null,
-        (0, _dom.hJSX)('input', { type: 'checkbox' }),
-        ' Toggle me',
-        (0, _dom.hJSX)(
-          'p',
-          null,
-          toggled ? 'ON' : 'OFF'
-        )
-      );
-    })
-  };
+
+    var toggleStartState = false;
+
+    var clicksApp$ = drivers.DOM.select('input').events('click').map(function (ev) {
+        return ev.target.checked;
+    }).startWith(toggleStartState);
+
+    var clicksApp2$ = drivers.ViewDOM.select('input').events('click').map(function (ev) {
+        return ev.target.checked;
+    }).startWith(toggleStartState);
+
+    var toggled$ = _rx2.default.Observable.merge(clicksApp$, clicksApp2$);
+
+    return {
+        DOM: toggled$.map(function (toggled) {
+            return (0, _dom.hJSX)(
+                'div',
+                null,
+                (0, _dom.hJSX)('input', { type: 'checkbox' }),
+                ' Toggle me',
+                (0, _dom.hJSX)(
+                    'p',
+                    null,
+                    toggled ? 'ON' : 'OFF'
+                )
+            );
+        }),
+        WriteDOM: toggled$
+    };
+}
+
+function addClassToInput(focus, _ref) {
+    var _ref2 = _slicedToArray(_ref, 2);
+
+    var toggled = _ref2[1];
+
+    var inputs = focus.querySelectorAll('input');
+
+    for (var i = 0; i < inputs.length; i++) {
+        var x = inputs[i];
+        if (toggled) {
+            x.classList.add('foo');
+        } else {
+            x.classList.remove('foo');
+        }
+    }
+    return {};
+}
+
+function makeWriteDOMDriver(mount, f) {
+    var focus = document.querySelector(mount);
+    return function (stream$) {
+        var first = stream$.first();
+        stream$.startWith([first, first]).scan(function (_ref3, newv) {
+            var _ref4 = _slicedToArray(_ref3, 2);
+
+            var oldv = _ref4[1];
+            return [oldv, newv];
+        }).subscribe(function (datum) {
+            return f(focus, datum);
+        });
+    };
 }
 
 window.onload = function () {
-  var drivers = {
-    DOM: (0, _dom.makeDOMDriver)('#app')
-  };
-  _core2.default.run(main, drivers);
+    var drivers = {
+        DOM: (0, _dom.makeDOMDriver)('#app'),
+        ViewDOM: (0, _dom.makeDOMDriver)('#app2'),
+        WriteDOM: makeWriteDOMDriver('#app2', addClassToInput)
+    };
+    _core2.default.run(main, drivers);
 };
 
-},{"@cycle/core":2,"@cycle/dom":3}],2:[function(require,module,exports){
+},{"@cycle/core":2,"@cycle/dom":3,"rx":22}],2:[function(require,module,exports){
 "use strict";
 
 var Rx = require("rx");
